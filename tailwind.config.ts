@@ -13,6 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        'taxi-sm': '16px',
+        'taxi-base': '18px',
+        'taxi-lg': '20px',
+        'taxi-xl': '24px',
+        'taxi-2xl': '28px',
+        'taxi-3xl': '36px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +58,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        taxi: {
+          yellow: "hsl(var(--taxi-yellow))",
+          dark: "hsl(var(--taxi-dark))",
+          green: "hsl(var(--taxi-green))",
+          red: "hsl(var(--taxi-red))",
+          orange: "hsl(var(--taxi-orange))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -65,25 +91,22 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-yellow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(45 100% 51% / 0.4)" },
+          "50%": { boxShadow: "0 0 0 12px hsl(45 100% 51% / 0)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-yellow": "pulse-yellow 2s ease-in-out infinite",
       },
     },
   },
