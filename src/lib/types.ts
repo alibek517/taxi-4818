@@ -60,6 +60,7 @@ export interface Order {
 export interface SystemSettings {
   start_price: number;
   km_price: number;
+  waiting_price_per_minute: number;
   passenger_bonus_percent: number;
   driver_bonus_per_order: number;
   driver_bonus_mode: 'GIVE' | 'TAKE';
@@ -72,6 +73,17 @@ export interface SystemSettings {
   w_recent: number;
   w_cancel: number;
   w_idle: number;
+}
+
+export type AuthStatus = 'pending' | 'approved' | 'rejected';
+
+export interface UserAccount {
+  id: string;
+  phone: string;
+  full_name: string;
+  role: UserRole;
+  auth_status: AuthStatus;
+  created_at: string;
 }
 
 export interface DashboardMetrics {
