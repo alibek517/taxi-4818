@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Login from "./pages/auth/Login.tsx";
+import Register from "./pages/auth/Register.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminOrders from "./pages/admin/AdminOrders.tsx";
 import AdminDrivers from "./pages/admin/AdminDrivers.tsx";
@@ -12,11 +14,7 @@ import AdminPassengers from "./pages/admin/AdminPassengers.tsx";
 import AdminZones from "./pages/admin/AdminZones.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import OperatorDashboard from "./pages/operator/OperatorDashboard.tsx";
-import DriverHome from "./pages/driver/DriverHome.tsx";
-import DriverOrders from "./pages/driver/DriverOrders.tsx";
-import DriverTrip from "./pages/driver/DriverTrip.tsx";
-import DriverHistory from "./pages/driver/DriverHistory.tsx";
-import DriverProfile from "./pages/driver/DriverProfile.tsx";
+import DriverDashboard from "./pages/driver/DriverDashboard.tsx";
 import PassengerHome from "./pages/passenger/PassengerHome.tsx";
 import PassengerTrack from "./pages/passenger/PassengerTrack.tsx";
 import PassengerHistory from "./pages/passenger/PassengerHistory.tsx";
@@ -33,6 +31,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboard />} />
@@ -45,12 +45,8 @@ const App = () => (
           {/* Operator */}
           <Route path="/operator" element={<OperatorDashboard />} />
           
-          {/* Driver */}
-          <Route path="/driver" element={<DriverHome />} />
-          <Route path="/driver/orders" element={<DriverOrders />} />
-          <Route path="/driver/trip" element={<DriverTrip />} />
-          <Route path="/driver/history" element={<DriverHistory />} />
-          <Route path="/driver/profile" element={<DriverProfile />} />
+          {/* Driver - single page */}
+          <Route path="/driver" element={<DriverDashboard />} />
           
           {/* Passenger */}
           <Route path="/passenger" element={<PassengerHome />} />

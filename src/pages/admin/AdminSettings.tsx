@@ -37,6 +37,10 @@ export default function AdminSettings() {
                 <Label>Km narxi (so'm)</Label>
                 <Input type="number" value={settings.km_price} onChange={e => update('km_price', e.target.value)} />
               </div>
+              <div>
+                <Label>Kutish narxi (so'm/min)</Label>
+                <Input type="number" value={settings.waiting_price_per_minute} onChange={e => update('waiting_price_per_minute', e.target.value)} />
+              </div>
             </div>
           </CardContent>
         </Card>

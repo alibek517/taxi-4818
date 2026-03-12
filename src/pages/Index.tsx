@@ -8,6 +8,7 @@ const roles = [
   { path: '/operator', icon: Headphones, label: 'Operator', desc: "Call-center operatori", color: 'taxi-gradient text-primary-foreground' },
   { path: '/driver', icon: Car, label: 'Haydovchi', desc: "Haydovchi ilovasi", color: 'bg-success text-success-foreground' },
   { path: '/passenger', icon: Users, label: "Yo'lovchi", desc: "Yo'lovchi ilovasi", color: 'bg-primary text-primary-foreground' },
+  { path: '/login', icon: Car, label: 'Kirish', desc: "Telefon orqali kirish", color: 'bg-muted text-muted-foreground' },
 ];
 
 export default function Index() {
