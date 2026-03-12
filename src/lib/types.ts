@@ -110,6 +110,7 @@ export const GURLAN_ZONES: Zone[] = [
 export const DEFAULT_SETTINGS: SystemSettings = {
   start_price: 3000,
   km_price: 5000,
+  waiting_price_per_minute: 500,
   passenger_bonus_percent: 3,
   driver_bonus_per_order: 500,
   driver_bonus_mode: 'GIVE',
