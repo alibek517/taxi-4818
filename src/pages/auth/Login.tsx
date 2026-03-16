@@ -4,36 +4,57 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Car, Phone, Lock } from 'lucide-react';
+import { Car, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const sendOtp = () => {
-    if (phone.length < 9) {
-      toast.error("Telefon raqamni to'liq kiriting");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast.error("Email va parolni kiriting");
       return;
     }
-    setStep('otp');
-    toast.success("SMS kod yuborildi (demo: 1234)");
-  };
-
-  const verifyOtp = () => {
-    if (otp === '1234') {
-      // Demo: check role by phone
-      if (phone.includes('111')) navigate('/admin');
-      else if (phone.includes('222')) navigate('/operator');
-      else if (phone.includes('333')) navigate('/driver');
-      else navigate('/passenger');
-      toast.success("Muvaffaqiyatli kirdingiz!");
-    } else {
-      toast.error("Noto'g'ri kod");
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
     }
+    // Fetch role and redirect
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    const role = roleData?.role;
+    if (role === 'admin') navigate('/admin');
+    else if (role === 'operator') navigate('/operator');
+    else if (role === 'driver') {
+      // Check if driver is approved
+      const { data: driverData } = await supabase
+        .from('drivers')
+        .select('auth_status')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      if (driverData?.auth_status === 'approved') {
+        navigate('/driver');
+      } else {
+        toast.error("Arizangiz hali tasdiqlanmagan. Iltimos kuting.");
+        await supabase.auth.signOut();
+      }
+    } else if (role === 'passenger') navigate('/passenger');
+    else navigate('/passenger'); // default
+
+    toast.success("Muvaffaqiyatli kirdingiz!");
+    setLoading(false);
   };
 
   return (
@@ -49,50 +70,35 @@ export default function Login() {
 
         <Card>
           <CardContent className="p-6 space-y-4">
-            {step === 'phone' ? (
-              <>
-                <div>
-                  <Label className="text-taxi-base">Telefon raqam</Label>
-                  <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="+998 90 123 45 67" 
-                      value={phone} 
-                      onChange={e => setPhone(e.target.value)}
-                      className="pl-10 h-12 text-taxi-base"
-                      type="tel"
-                    />
-                  </div>
-                </div>
-                <Button onClick={sendOtp} className="w-full h-12 taxi-gradient text-primary-foreground text-taxi-base" size="lg">
-                  SMS kod olish
-                </Button>
-              </>
-            ) : (
-              <>
-                <div>
-                  <Label className="text-taxi-base">SMS kod</Label>
-                  <div className="relative mt-1">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="1234" 
-                      value={otp}
-                      onChange={e => setOtp(e.target.value)}
-                      className="pl-10 h-12 text-taxi-base text-center tracking-[0.5em]"
-                      maxLength={4}
-                      type="number"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Demo kod: 1234</p>
-                </div>
-                <Button onClick={verifyOtp} className="w-full h-12 taxi-gradient text-primary-foreground text-taxi-base" size="lg">
-                  Kirish
-                </Button>
-                <button onClick={() => setStep('phone')} className="text-sm text-primary w-full text-center">
-                  Raqamni o'zgartirish
-                </button>
-              </>
-            )}
+            <div>
+              <Label className="text-taxi-base">Email</Label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input 
+                  placeholder="email@example.com" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)}
+                  className="pl-10 h-12 text-taxi-base"
+                  type="email"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-taxi-base">Parol</Label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="pl-10 h-12 text-taxi-base"
+                  type="password"
+                />
+              </div>
+            </div>
+            <Button onClick={handleLogin} disabled={loading} className="w-full h-12 taxi-gradient text-primary-foreground text-taxi-base" size="lg">
+              {loading ? 'Kirish...' : 'Kirish'}
+            </Button>
           </CardContent>
         </Card>
 

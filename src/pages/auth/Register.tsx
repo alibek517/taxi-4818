@@ -4,29 +4,80 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Car, Phone, User, Clock } from 'lucide-react';
+import { Car, Phone, User, Clock, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     full_name: '',
     phone: '',
+    email: '',
+    password: '',
     car_model: '',
     car_plate: '',
     car_color: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
-  const handleSubmit = () => {
-    if (!form.full_name || !form.phone) {
-      toast.error("Ism va telefon majburiy");
+  const handleSubmit = async () => {
+    if (!form.full_name || !form.phone || !form.email || !form.password) {
+      toast.error("Ism, telefon, email va parol majburiy");
       return;
     }
+    if (form.password.length < 6) {
+      toast.error("Parol kamida 6 ta belgi bo'lishi kerak");
+      return;
+    }
+    setLoading(true);
+
+    // 1. Sign up user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+    });
+
+    if (authError || !authData.user) {
+      toast.error(authError?.message || "Ro'yxatdan o'tishda xatolik");
+      setLoading(false);
+      return;
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Create profile
+    await supabase.from('profiles').insert({
+      id: userId,
+      full_name: form.full_name,
+      phone: form.phone,
+    });
+
+    // 3. Assign driver role
+    await supabase.from('user_roles').insert({
+      user_id: userId,
+      role: 'driver',
+    });
+
+    // 4. Create driver record with pending status
+    await supabase.from('drivers').insert({
+      id: userId,
+      full_name: form.full_name,
+      phone: form.phone,
+      car_model: form.car_model || 'Noma\'lum',
+      car_plate: form.car_plate || '',
+      car_color: form.car_color || '',
+    });
+
+    // Sign out after registration (driver needs approval)
+    await supabase.auth.signOut();
+
     setSubmitted(true);
+    setLoading(false);
     toast.success("Ariza yuborildi! Admin tasdiqlashini kuting.");
   };
 
@@ -98,6 +149,20 @@ export default function Register() {
                 <Input placeholder="+998 90 123 45 67" value={form.phone} onChange={e => update('phone', e.target.value)} className="pl-10 h-12 text-taxi-base" type="tel" />
               </div>
             </div>
+            <div>
+              <Label className="text-taxi-base">Email *</Label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input placeholder="email@example.com" value={form.email} onChange={e => update('email', e.target.value)} className="pl-10 h-12 text-taxi-base" type="email" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-taxi-base">Parol *</Label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input placeholder="Kamida 6 ta belgi" value={form.password} onChange={e => update('password', e.target.value)} className="pl-10 h-12 text-taxi-base" type="password" />
+              </div>
+            </div>
             <div className="border-t border-border pt-4">
               <p className="text-sm text-muted-foreground mb-3">Mashina ma'lumotlari (ixtiyoriy)</p>
               <div className="space-y-3">
@@ -117,8 +182,8 @@ export default function Register() {
                 </div>
               </div>
             </div>
-            <Button onClick={handleSubmit} className="w-full h-12 taxi-gradient text-primary-foreground text-taxi-base" size="lg">
-              Ariza yuborish
+            <Button onClick={handleSubmit} disabled={loading} className="w-full h-12 taxi-gradient text-primary-foreground text-taxi-base" size="lg">
+              {loading ? 'Yuborilmoqda...' : 'Ariza yuborish'}
             </Button>
           </CardContent>
         </Card>

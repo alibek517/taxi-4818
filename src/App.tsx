@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/auth/Login.tsx";
@@ -29,34 +30,36 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Admin */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/drivers" element={<AdminDrivers />} />
-          <Route path="/admin/passengers" element={<AdminPassengers />} />
-          <Route path="/admin/zones" element={<AdminZones />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          
-          {/* Operator */}
-          <Route path="/operator" element={<OperatorDashboard />} />
-          
-          {/* Driver - single page */}
-          <Route path="/driver" element={<DriverDashboard />} />
-          
-          {/* Passenger */}
-          <Route path="/passenger" element={<PassengerHome />} />
-          <Route path="/passenger/track" element={<PassengerTrack />} />
-          <Route path="/passenger/history" element={<PassengerHistory />} />
-          <Route path="/passenger/bonus" element={<PassengerBonus />} />
-          <Route path="/passenger/profile" element={<PassengerProfile />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Admin */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/drivers" element={<AdminDrivers />} />
+            <Route path="/admin/passengers" element={<AdminPassengers />} />
+            <Route path="/admin/zones" element={<AdminZones />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            
+            {/* Operator */}
+            <Route path="/operator" element={<OperatorDashboard />} />
+            
+            {/* Driver - single page */}
+            <Route path="/driver" element={<DriverDashboard />} />
+            
+            {/* Passenger */}
+            <Route path="/passenger" element={<PassengerHome />} />
+            <Route path="/passenger/track" element={<PassengerTrack />} />
+            <Route path="/passenger/history" element={<PassengerHistory />} />
+            <Route path="/passenger/bonus" element={<PassengerBonus />} />
+            <Route path="/passenger/profile" element={<PassengerProfile />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
