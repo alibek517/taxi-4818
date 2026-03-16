@@ -38,6 +38,7 @@ export interface Passenger {
 
 export interface Order {
   id: string;
+  order_type: OrderType;
   passenger_phone: string;
   passenger_name?: string;
   pickup_zone: string;
@@ -56,6 +57,7 @@ export interface Order {
   created_at: string;
   completed_at?: string;
   cancelled_reason?: string;
+  delivery_description?: string;
 }
 
 export interface SystemSettings {
