@@ -2,8 +2,9 @@
 
 export type UserRole = 'admin' | 'operator' | 'driver' | 'passenger';
 
-export type OrderStatus = 'CREATED' | 'OFFERED' | 'ACCEPTED' | 'ARRIVED' | 'IN_TRIP' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = 'CREATED' | 'OFFERED' | 'ACCEPTED' | 'ARRIVED' | 'WAITING' | 'IN_TRIP' | 'COMPLETED' | 'CANCELLED';
 export type DispatchState = 'RED_TARGETED' | 'GREEN_PUBLIC';
+export type OrderType = 'TAXI' | 'DELIVERY';
 
 export interface Zone {
   id: string;
