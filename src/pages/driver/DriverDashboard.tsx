@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,38 @@ import type { Order } from '@/lib/types';
 import { 
   Car, Wallet, MapPin, Phone, Navigation, CheckCircle, 
   Clock, Lock, Check, X, ArrowDown, ArrowUp, Star, 
-  User, ClipboardList, LogOut, Power, ChevronDown, ChevronUp
+  User, ClipboardList, LogOut, Power, ChevronDown, ChevronUp,
+  Bell, Volume2, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const currentDriverId = 'd1';
 const driver = MOCK_DRIVERS.find(d => d.id === currentDriverId)!;
+
+// Sound notification for targeted orders
+const playOrderSound = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const playTone = (freq: number, start: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur);
+    };
+    // Attention melody: 3 ascending tones
+    playTone(880, 0, 0.2);
+    playTone(1100, 0.25, 0.2);
+    playTone(1320, 0.5, 0.4);
+  } catch (e) {
+    // Audio not available
+  }
+};
 
 export default function DriverDashboard() {
   const navigate = useNavigate();
@@ -24,16 +50,34 @@ export default function DriverDashboard() {
   const [tripStatus, setTripStatus] = useState<'ACCEPTED' | 'ARRIVED' | 'WAITING' | 'IN_TRIP' | null>(null);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   
-  // Collapsible sections
   const [showHistory, setShowHistory] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
-  // Trip tracking
   const [tripKm, setTripKm] = useState(0);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
   const [waitingCost, setWaitingCost] = useState(0);
   const tripInterval = useRef<NodeJS.Timeout | null>(null);
   const waitInterval = useRef<NodeJS.Timeout | null>(null);
+  const notifiedOrders = useRef<Set<string>>(new Set());
+
+  // Play sound for new targeted orders
+  useEffect(() => {
+    orders.forEach(order => {
+      if (
+        order.dispatch_state === 'RED_TARGETED' &&
+        order.targeted_driver_id === currentDriverId &&
+        !order.accepted_by_driver_id &&
+        !notifiedOrders.current.has(order.id)
+      ) {
+        notifiedOrders.current.add(order.id);
+        playOrderSound();
+        toast("🔔 Yangi buyurtma sizga tayinlandi!", {
+          description: `${order.pickup_zone} → ${order.drop_zone || '—'} • ${order.total_price.toLocaleString()} so'm`,
+          duration: 8000,
+        });
+      }
+    });
+  }, [orders]);
 
   useEffect(() => {
     if (tripStatus === 'IN_TRIP') {
@@ -222,7 +266,6 @@ export default function DriverDashboard() {
                 {tripStatus === 'IN_TRIP' && `🛣 Safar • ${tripKm} km`}
               </div>
 
-              {/* Live stats */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-muted/50 p-2 rounded">
                   <p className="text-xs text-muted-foreground">KM</p>
@@ -239,7 +282,6 @@ export default function DriverDashboard() {
                 </div>
               </div>
 
-              {/* Route */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-success" />
@@ -253,7 +295,6 @@ export default function DriverDashboard() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2">
                 <a href={`tel:${activeOrder.passenger_phone}`} className="flex-1">
                   <Button variant="outline" className="w-full" size="lg">
@@ -316,23 +357,50 @@ export default function DriverDashboard() {
             {orders.filter(o => o.accepted_by_driver_id !== currentDriverId).map(order => {
               const isTargeted = order.dispatch_state === 'RED_TARGETED';
               const isMyTarget = isTargeted && order.targeted_driver_id === currentDriverId;
-              const isRed = isTargeted && !isMyTarget;
-              const canAccept = !isDriverBusy && (isMyTarget || order.dispatch_state === 'GREEN_PUBLIC');
+              const isOtherTarget = isTargeted && !isMyTarget;
+              const isGreenPublic = order.dispatch_state === 'GREEN_PUBLIC';
+              const canAccept = !isDriverBusy && (isMyTarget || isGreenPublic);
 
               return (
-                <Card key={order.id} className={`border-2 ${isRed ? 'taxi-card-red' : 'taxi-card-green'}`}>
+                <Card key={order.id} className={`border-2 transition-all ${
+                  isMyTarget ? 'border-primary bg-primary/5 animate-pulse' :
+                  isOtherTarget ? 'taxi-card-red opacity-70' : 
+                  'taxi-card-green'
+                }`}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {isRed && <Lock className="w-3.5 h-3.5 text-destructive" />}
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                          isRed ? 'bg-destructive/20 taxi-text-red' : 'bg-success/20 taxi-text-green'
-                        }`}>
-                          {isRed ? 'BAND' : 'BARCHAGA'}
-                        </span>
+                        {/* State 1: Targeted to ME */}
+                        {isMyTarget && (
+                          <>
+                            <Volume2 className="w-4 h-4 text-primary animate-bounce" />
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary/20 text-primary">
+                              🔔 SIZGA TAYINLANDI
+                            </span>
+                          </>
+                        )}
+                        {/* State 2: Targeted to SOMEONE ELSE */}
+                        {isOtherTarget && (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-destructive" />
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-destructive/20 taxi-text-red">
+                              BOSHQA HAYDOVCHIGA
+                            </span>
+                          </>
+                        )}
+                        {/* State 3: GREEN PUBLIC - everyone */}
+                        {isGreenPublic && (
+                          <>
+                            <Users className="w-3.5 h-3.5 taxi-text-green" />
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-success/20 taxi-text-green">
+                              BARCHAGA OCHIQ
+                            </span>
+                          </>
+                        )}
                       </div>
                       <p className="text-taxi-lg font-bold">{order.total_price.toLocaleString()}</p>
                     </div>
+
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-2 h-2 rounded-full bg-success" />
                       <span className="text-sm font-medium">{order.pickup_zone}</span>
@@ -344,11 +412,43 @@ export default function DriverDashboard() {
                       )}
                       <span className="text-xs text-muted-foreground ml-auto">{order.estimated_km} km</span>
                     </div>
-                    {isRed ? (
-                      <p className="text-xs taxi-text-red">Band. Boshqa taksiga yuborilgan.</p>
-                    ) : (
+
+                    {/* State 1: MY TARGET - big accept button */}
+                    {isMyTarget && (
                       <div className="flex gap-2 mt-2">
-                        <Button onClick={() => acceptOrder(order.id)} disabled={!canAccept} className="flex-1 taxi-gradient text-primary-foreground" size="sm">
+                        <Button 
+                          onClick={() => acceptOrder(order.id)} 
+                          disabled={isDriverBusy} 
+                          className="flex-1 taxi-gradient text-primary-foreground h-12 text-taxi-base" 
+                          size="lg"
+                        >
+                          <Check className="w-5 h-5 mr-1" /> Qabul qilish
+                        </Button>
+                        <Button onClick={() => declineOrder(order.id)} variant="outline" size="lg" className="h-12">
+                          <X className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* State 2: OTHER TARGET - locked message */}
+                    {isOtherTarget && (
+                      <div className="mt-2 flex items-center gap-2 p-2 rounded-lg bg-destructive/10">
+                        <Lock className="w-4 h-4 taxi-text-red" />
+                        <p className="text-xs taxi-text-red font-medium">
+                          Bu buyurtma boshqa haydovchiga tayinlangan. Kutib turing...
+                        </p>
+                      </div>
+                    )}
+
+                    {/* State 3: GREEN PUBLIC - accept for everyone */}
+                    {isGreenPublic && (
+                      <div className="flex gap-2 mt-2">
+                        <Button 
+                          onClick={() => acceptOrder(order.id)} 
+                          disabled={isDriverBusy} 
+                          className="flex-1 bg-success text-success-foreground" 
+                          size="sm"
+                        >
                           <Check className="w-4 h-4 mr-1" /> Qabul
                         </Button>
                         <Button onClick={() => declineOrder(order.id)} variant="outline" size="sm">
@@ -385,11 +485,11 @@ export default function DriverDashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-sm">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(item.time).toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[11px] text-muted-foreground">{new Date(item.time).toLocaleTimeString('uz')}</p>
                       </div>
                     </div>
                     <span className={`font-bold ${item.type === 'income' ? 'taxi-text-green' : 'taxi-text-red'}`}>
-                      {item.type === 'income' ? '+' : ''}{Math.abs(item.amount).toLocaleString()}
+                      {item.type === 'income' ? '+' : ''}{item.amount.toLocaleString()}
                     </span>
                   </CardContent>
                 </Card>
