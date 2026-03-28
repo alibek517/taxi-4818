@@ -1,24 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { DEFAULT_SETTINGS } from '@/lib/types';
-import type { SystemSettings } from '@/lib/types';
-import { Save } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const update = (key: keyof SystemSettings, value: number | string) => {
-    setSettings(prev => ({ ...prev, [key]: typeof prev[key] === 'number' ? Number(value) : value }));
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase.from('system_settings').select('*').limit(1).maybeSingle();
+      if (data) setSettings(data);
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const update = (key: string, value: number | string) => {
+    setSettings((prev: any) => ({ ...prev, [key]: typeof prev[key] === 'number' ? Number(value) : value }));
   };
 
-  const save = () => {
-    toast.success("Sozlamalar saqlandi!");
+  const save = async () => {
+    if (!settings) return;
+    setSaving(true);
+    const { error } = await supabase.from('system_settings').update({
+      start_price: settings.start_price,
+      km_price: settings.km_price,
+      waiting_price_per_minute: settings.waiting_price_per_minute,
+      passenger_bonus_percent: settings.passenger_bonus_percent,
+      driver_bonus_per_order: settings.driver_bonus_per_order,
+      driver_bonus_mode: settings.driver_bonus_mode,
+      green_after_seconds: settings.green_after_seconds,
+      offer_expires_seconds: settings.offer_expires_seconds,
+      max_targeted_attempts: settings.max_targeted_attempts,
+      decline_cooldown_seconds: settings.decline_cooldown_seconds,
+      w_distance: settings.w_distance,
+      w_queue: settings.w_queue,
+      w_recent: settings.w_recent,
+      w_cancel: settings.w_cancel,
+      w_idle: settings.w_idle,
+    }).eq('id', settings.id);
+    
+    if (error) toast.error("Saqlashda xatolik");
+    else toast.success("Sozlamalar saqlandi!");
+    setSaving(false);
   };
+
+  if (loading || !settings) {
+    return <AdminLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></AdminLayout>;
+  }
 
   return (
     <AdminLayout>
@@ -68,9 +104,7 @@ export default function AdminSettings() {
                     className={`px-4 py-2 rounded-lg text-sm font-medium ${
                       settings.driver_bonus_mode === mode ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                     }`}
-                  >
-                    {mode === 'GIVE' ? 'Berish' : 'Yechish'}
-                  </button>
+                  >{mode === 'GIVE' ? 'Berish' : 'Yechish'}</button>
                 ))}
               </div>
             </div>
@@ -81,22 +115,10 @@ export default function AdminSettings() {
           <CardHeader><CardTitle>Dispatch sozlamalari</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>RED → GREEN (sekund)</Label>
-                <Input type="number" value={settings.green_after_seconds} onChange={e => update('green_after_seconds', e.target.value)} />
-              </div>
-              <div>
-                <Label>Taklif muddati (sekund)</Label>
-                <Input type="number" value={settings.offer_expires_seconds} onChange={e => update('offer_expires_seconds', e.target.value)} />
-              </div>
-              <div>
-                <Label>Maks. RED urinishlar</Label>
-                <Input type="number" value={settings.max_targeted_attempts} onChange={e => update('max_targeted_attempts', e.target.value)} />
-              </div>
-              <div>
-                <Label>Rad etish kutish (sekund)</Label>
-                <Input type="number" value={settings.decline_cooldown_seconds} onChange={e => update('decline_cooldown_seconds', e.target.value)} />
-              </div>
+              <div><Label>RED → GREEN (sekund)</Label><Input type="number" value={settings.green_after_seconds} onChange={e => update('green_after_seconds', e.target.value)} /></div>
+              <div><Label>Taklif muddati (sekund)</Label><Input type="number" value={settings.offer_expires_seconds} onChange={e => update('offer_expires_seconds', e.target.value)} /></div>
+              <div><Label>Maks. RED urinishlar</Label><Input type="number" value={settings.max_targeted_attempts} onChange={e => update('max_targeted_attempts', e.target.value)} /></div>
+              <div><Label>Rad etish kutish (sekund)</Label><Input type="number" value={settings.decline_cooldown_seconds} onChange={e => update('decline_cooldown_seconds', e.target.value)} /></div>
             </div>
           </CardContent>
         </Card>
@@ -106,11 +128,11 @@ export default function AdminSettings() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {[
-                { key: 'w_distance' as const, label: 'Masofa' },
-                { key: 'w_queue' as const, label: 'Navbat' },
-                { key: 'w_recent' as const, label: 'Yaqinda qabul' },
-                { key: 'w_cancel' as const, label: 'Bekor qilish' },
-                { key: 'w_idle' as const, label: 'Bo\'sh vaqt' },
+                { key: 'w_distance', label: 'Masofa' },
+                { key: 'w_queue', label: 'Navbat' },
+                { key: 'w_recent', label: 'Yaqinda qabul' },
+                { key: 'w_cancel', label: 'Bekor qilish' },
+                { key: 'w_idle', label: "Bo'sh vaqt" },
               ].map(w => (
                 <div key={w.key}>
                   <Label>{w.label}</Label>
@@ -121,8 +143,8 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        <Button onClick={save} className="w-full" size="lg">
-          <Save className="w-4 h-4 mr-2" /> Saqlash
+        <Button onClick={save} disabled={saving} className="w-full" size="lg">
+          <Save className="w-4 h-4 mr-2" /> {saving ? 'Saqlanmoqda...' : 'Saqlash'}
         </Button>
       </div>
     </AdminLayout>
