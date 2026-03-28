@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Car, Users, MapPin, Settings, ClipboardList, 
   Menu, X, ChevronRight, LogOut, Headphones
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import zippyLogo from '@/assets/zippy-logo.png';
 
 const navItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -17,15 +19,20 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-foreground/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-200
         lg:relative lg:translate-x-0
@@ -33,11 +40,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       `}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg taxi-gradient flex items-center justify-center">
-              <Car className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src={zippyLogo} alt="Zippy" className="w-9 h-9 rounded-lg object-cover" />
             <div>
-              <h1 className="text-sm font-bold text-sidebar-foreground">Gurlan Taxi</h1>
+              <h1 className="text-sm font-bold text-sidebar-foreground">Zippy</h1>
               <p className="text-xs text-muted-foreground">Admin Panel</p>
             </div>
           </div>
@@ -78,17 +83,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Headphones className="w-5 h-5" />
             Operator Panel
           </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             <LogOut className="w-5 h-5" />
             Chiqish
-          </Link>
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         <header className="h-16 border-b border-border flex items-center px-4 lg:px-6 bg-card">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-3">

@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, ClipboardList, Gift, User } from 'lucide-react';
+import zippyLogo from '@/assets/zippy-logo.png';
 
 const tabs = [
   { path: '/passenger', icon: Home, label: 'Asosiy' },
@@ -15,10 +15,8 @@ export default function PassengerLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0">
-        <div className="w-8 h-8 rounded-lg taxi-gradient flex items-center justify-center">
-          <Home className="w-4 h-4 text-primary-foreground" />
-        </div>
-        <h1 className="font-bold text-taxi-base">Gurlan Taxi</h1>
+        <img src={zippyLogo} alt="Zippy" className="w-8 h-8 rounded-lg object-cover" />
+        <h1 className="font-bold text-taxi-base">Zippy</h1>
       </header>
       <main className="flex-1 overflow-auto pb-20">
         {children}

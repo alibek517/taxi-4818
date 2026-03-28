@@ -1,16 +1,29 @@
+import { useState, useEffect } from 'react';
 import PassengerLayout from '@/components/passenger/PassengerLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ArrowDown, ArrowUp } from 'lucide-react';
-
-const bonusHistory = [
-  { type: 'earn', label: 'Safar bonusi', amount: 600, date: '2026-03-12' },
-  { type: 'earn', label: 'Safar bonusi', amount: 390, date: '2026-03-11' },
-  { type: 'spend', label: "To'lov uchun ishlatildi", amount: -400, date: '2026-03-10' },
-  { type: 'earn', label: 'Safar bonusi', amount: 540, date: '2026-03-10' },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Gift, ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 
 export default function PassengerBonus() {
-  const balance = bonusHistory.reduce((sum, b) => sum + b.amount, 0);
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetch = async () => {
+      const { data } = await supabase.from('wallet_transactions').select('*')
+        .eq('user_id', user.id).order('created_at', { ascending: false });
+      setTransactions(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, [user]);
+
+  const balance = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+  if (loading) return <PassengerLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></PassengerLayout>;
 
   return (
     <PassengerLayout>
@@ -25,22 +38,22 @@ export default function PassengerBonus() {
         </Card>
 
         <h3 className="font-bold text-taxi-base">Bonus tarixi</h3>
-        {bonusHistory.map((b, i) => (
-          <Card key={i}>
+        {transactions.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">Bonus tarixi bo'sh</div>
+        ) : transactions.map((t: any) => (
+          <Card key={t.id}>
             <CardContent className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  b.amount > 0 ? 'bg-success/20' : 'bg-destructive/20'
-                }`}>
-                  {b.amount > 0 ? <ArrowDown className="w-4 h-4 taxi-text-green" /> : <ArrowUp className="w-4 h-4 taxi-text-red" />}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.amount > 0 ? 'bg-success/20' : 'bg-destructive/20'}`}>
+                  {t.amount > 0 ? <ArrowDown className="w-4 h-4 taxi-text-green" /> : <ArrowUp className="w-4 h-4 taxi-text-red" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{b.label}</p>
-                  <p className="text-xs text-muted-foreground">{b.date}</p>
+                  <p className="text-sm font-medium">{t.description || (t.amount > 0 ? 'Bonus' : "To'lov")}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString('uz')}</p>
                 </div>
               </div>
-              <span className={`font-bold ${b.amount > 0 ? 'taxi-text-green' : 'taxi-text-red'}`}>
-                {b.amount > 0 ? '+' : ''}{b.amount.toLocaleString()}
+              <span className={`font-bold ${t.amount > 0 ? 'taxi-text-green' : 'taxi-text-red'}`}>
+                {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()}
               </span>
             </CardContent>
           </Card>
