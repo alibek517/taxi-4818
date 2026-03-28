@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Car, Phone, User, Clock, Mail, Lock } from 'lucide-react';
+import { Car, Phone, User, Clock, Lock, AtSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,7 @@ export default function Register() {
   const [form, setForm] = useState({
     full_name: '',
     phone: '',
-    email: '',
+    username: '',
     password: '',
     car_model: '',
     car_plate: '',
@@ -26,35 +26,47 @@ export default function Register() {
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
-    if (!form.full_name || !form.phone || !form.email || !form.password) {
-      toast.error("Ism, telefon, email va parol majburiy");
+    if (!form.full_name || !form.phone || !form.username || !form.password) {
+      toast.error("Ism, telefon, username va parol majburiy");
       return;
     }
     if (form.password.length < 6) {
       toast.error("Parol kamida 6 ta belgi bo'lishi kerak");
       return;
     }
+    if (!/^[a-zA-Z0-9_]+$/.test(form.username)) {
+      toast.error("Username faqat harf, raqam va _ bo'lishi mumkin");
+      return;
+    }
     setLoading(true);
+
+    // Use internal email based on username
+    const internalEmail = `${form.username.toLowerCase()}@gurlan.taxi`;
 
     // 1. Sign up user
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.email,
+      email: internalEmail,
       password: form.password,
     });
 
     if (authError || !authData.user) {
-      toast.error(authError?.message || "Ro'yxatdan o'tishda xatolik");
+      if (authError?.message?.includes('already registered')) {
+        toast.error("Bu username band. Boshqa username tanlang.");
+      } else {
+        toast.error(authError?.message || "Ro'yxatdan o'tishda xatolik");
+      }
       setLoading(false);
       return;
     }
 
     const userId = authData.user.id;
 
-    // 2. Create profile
+    // 2. Create profile with username
     await supabase.from('profiles').insert({
       id: userId,
       full_name: form.full_name,
       phone: form.phone,
+      username: form.username.toLowerCase(),
     });
 
     // 3. Assign driver role
@@ -97,6 +109,10 @@ export default function Register() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ism</span>
                 <span className="font-medium">{form.full_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Username</span>
+                <span className="font-medium">{form.username}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Telefon</span>
@@ -150,10 +166,10 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <Label className="text-taxi-base">Email *</Label>
+              <Label className="text-taxi-base">Username *</Label>
               <div className="relative mt-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input placeholder="email@example.com" value={form.email} onChange={e => update('email', e.target.value)} className="pl-10 h-12 text-taxi-base" type="email" />
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input placeholder="jasur_driver" value={form.username} onChange={e => update('username', e.target.value)} className="pl-10 h-12 text-taxi-base" />
               </div>
             </div>
             <div>
